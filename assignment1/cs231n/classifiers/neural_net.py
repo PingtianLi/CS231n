@@ -80,8 +80,11 @@ class TwoLayerNet(object):
         #############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        h1 = X.dot(W1) + b1
+        h1 = np.maximum(0,h1)
+        scores = h1.dot(W2) + b2
 
+        self.params['h1'] = h1
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
         # If the targets are not given then jump out, we're done
@@ -98,7 +101,10 @@ class TwoLayerNet(object):
         #############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        exp_scores = np.exp(scores)
+        exp_sum = np.sum(exp_scores,axis = 1)
+        loss = -np.sum(np.log(exp_scores[range(N),y]/exp_sum))
+        loss =  loss/N + reg*np.sum(W1*W1) + reg*np.sum(W2*W2)
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
@@ -111,8 +117,15 @@ class TwoLayerNet(object):
         #############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        dW1 = np.zeros_like(W1)
+        db1 = np.zeros_like(b1)
+        dW2 = np.zeros_like(W2)
+        db2 = np.zeros_like(b2)
 
+        temp = exp_scores/exp_sum.reshape(-1,1)
+        temp[range(N),y] = temp[range(N),y] - 1
+        dW = (X.T).dot(temp)
+        dW = dW / N + 2*reg*W2
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
         return loss, grads
