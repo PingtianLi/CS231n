@@ -142,8 +142,25 @@ class CaptioningRNN(object):
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        # pass
 
+        affine_out,affine_cache = affine_forward(features,W_proj,b_proj)
+        word_embedding_out,word_embedding_cache = word_embedding_forward(captions_in, W_embed)
+        if self.cell_type == 'rnn':
+            rnn_lstm_out,rnn_lstm_cache = rnn_forward(word_embedding_out, affine_out, Wx, Wh, b)
+        elif self.cell_type == 'lstm':
+            rnn_lstm_out,rnn_lstm_cache = lstm_forward(word_embedding_out, affine_out, Wx, Wh, b)
+        else:
+            raise ValueError('Invalid cell_type "%s"' % self.cell_type)
+        temporal_affine_out,temporal_affine_cache = temporal_affine_forward(rnn_lstm_out,W_vocab,b_vocab)
+        loss,dout = temporal_softmax_loss(temporal_affine_out,captions_out,mask)
+        dtemporal_affine,grads['W_vocab'],grads['b_vocab'] = temporal_affine_backward(dout,temporal_affine_cache)
+        if self.cell_type == 'rnn':
+            drnn_lstm,daffine, grads['Wx'], grads['Wh'], grads['b'] = rnn_backward(dtemporal_affine,rnn_lstm_cache)
+        elif self.cell_type == 'lstm':
+            drnn_lstm,daffine, grads['Wx'], grads['Wh'], grads['b'] = lstm_backward(dtemporal_affine,rnn_lstm_cache)
+        grads['W_embed'] = word_embedding_backward(drnn_lstm,word_embedding_cache)
+        _,grads['W_proj'],grads['b_proj'] = affine_backward(daffine,affine_cache)
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
         #                             END OF YOUR CODE                             #
@@ -211,8 +228,27 @@ class CaptioningRNN(object):
         ###########################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        # pass
+        N,D = features.shape
+        affine_out,affine_cache = affine_forward(features,W_proj,b_proj)
 
+        prev_word_idx = [self._start]*N
+        prev_h = affine_out
+        prev_c = np.zeros(prev_h.shape)
+        captions[:,0] = self._start
+        for i in range(1,max_length):
+            prev_word_embed  = W_embed[prev_word_idx]
+            if self.cell_type == 'rnn':
+                next_h, rnn_step_cache = rnn_step_forward(prev_word_embed, prev_h, Wx, Wh, b)
+            elif self.cell_type == 'lstm':
+                next_h, next_c,lstm_step_cache = lstm_step_forward(prev_word_embed, prev_h, prev_c, Wx, Wh, b)
+                prev_c = next_c
+            else:
+                raise ValueError('Invalid cell_type "%s"' % self.cell_type)
+            vocab_affine_out, vocab_affine_out_cache = affine_forward(next_h, W_vocab, b_vocab)
+            captions[:,i] = list(np.argmax(vocab_affine_out, axis = 1))
+            prev_word_idx = captions[:,i]
+            prev_h = next_h
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
         #                             END OF YOUR CODE                             #
