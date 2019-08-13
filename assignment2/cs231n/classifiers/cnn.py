@@ -55,7 +55,14 @@ class ThreeLayerConvNet(object):
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        # pass
+        C, H, W = input_dim
+        self.params['W1'] = np.random.randn(num_filters,C,filter_size,filter_size)*weight_scale
+        self.params['b1'] = np.zeros(num_filters)
+        self.params['W2'] = np.random.randn(int(H/2*W/2)*num_filters,hidden_dim)*weight_scale
+        self.params['b2'] = np.zeros(hidden_dim)
+        self.params['W3'] = np.random.randn(hidden_dim,num_classes)*weight_scale
+        self.params['b3'] = np.zeros(num_classes)
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
@@ -95,7 +102,10 @@ class ThreeLayerConvNet(object):
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        # pass
+        conv,cache1 = conv_relu_pool_forward(X,W1,b1,conv_param,pool_param)
+        h,cache2 = affine_relu_forward(conv,W2,b2)
+        scores,cache3 = affine_forward(h,W3,b3)
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
@@ -118,8 +128,16 @@ class ThreeLayerConvNet(object):
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        # pass
+        loss,dscores = softmax_loss(scores,y)
+        loss += self.reg*(0.5*np.sum(W1**2) + 0.5*np.sum(W2**2) + 0.5*np.sum(W3**2))
+        dx3,grads['W3'],grads['b3'] = affine_backward(dscores,cache3)
+        dx2,grads['W2'],grads['b2'] = affine_relu_backward(dx3,cache2)
+        dx1,grads['W1'],grads['b1'] = conv_relu_pool_backward(dx2,cache1)
 
+        grads['W3'] += self.params['W3']*self.reg
+        grads['W2'] += self.params['W2']*self.reg
+        grads['W1'] += self.params['W1']*self.reg
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
         #                             END OF YOUR CODE                             #
